@@ -14,7 +14,7 @@ Real-time Visualization: An interactive Doughnut Chart instantly updates to show
 
 Quick Stats: Displays live calculations for Total Spending, Monthly Savings, and Remaining Budget.
 
-2. 💳 Debt & Synchronization Tracker
+2. Debt & Synchronization Tracker
 
 Debt Management: Track multiple credit cards and loans, including current balances and annual interest rates.
 
