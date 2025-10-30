@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack - Modern Financial Dashboard</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js for the Pie Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- Configure Tailwind to use the Inter font and a custom color palette -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#3b82f6', // Brighter Blue for Primary Actions
+                        'secondary-green': '#10b981', // Emerald Green for Positive Growth
+                        'dark-bg': '#0a0a0f', // Near Black for Deep Background
+                        'card-bg': '#1f2937', // Dark Slate for Cards
+                        'text-light': '#f1f5f9', // Slate 100
+                        'accent-red': '#ef4444', // Red for warnings/overspending
+                        'accent-yellow': '#facc15', // Yellow for tax/warning
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* --- DARK MODE (Default) Styles --- */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0f; /* dark-bg */
+            background-image: radial-gradient(#1f2937 1px, transparent 0);
+            background-size: 30px 30px;
+            color: #f1f5f9; /* text-light */
+            transition: all 0.3s ease;
+        }
+        .card {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); /* Deeper shadow */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #374151; /* Subtle border */
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+        }
+        .input-field {
+            appearance: none;
+            padding: 10px;
+            border: 2px solid #475569; /* Slate-600 */
+            background-color: #0f172a; /* Darker input background */
+            color: #f1f5f9;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6; /* primary-blue */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        /* Custom button styling */
+        .primary-btn {
+            color: white;
+            padding: 12px 24px; /* Larger padding */
+            border-radius: 0.5rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            transition: transform 0.1s ease-out, background-color 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+        }
+        .primary-btn:hover { opacity: 0.95; }
+        .primary-btn:active {
+            transform: translateY(1px) scale(0.99); /* Press effect */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        /* Receipt scanner file input styles */
+        .file\:mr-4 { margin-right: 1rem; }
+        .file\:py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .file\:px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .file\:rounded-full { border-radius: 9999px; }
+        .file\:border-0 { border-width: 0; }
+        .file\:text-sm { font-size: 0.875rem; }
+        .file\:font-semibold { font-weight: 600; }
+        .file\:bg-primary-blue { background-color: #3b82f6; }
+        .file\:text-white { color: white; }
+        .hover\:file\:bg-blue-600:hover { background-color: #2563eb; }
+
+        /* --- LIGHT MODE Overrides --- */
+        body[data-theme="light"] {
+            background-color: #f1f5f9; /* Light background */
+            color: #1f2937; /* Dark text */
+            background-image: none; /* Remove dark background texture */
+        }
+        body[data-theme="light"] .card {
+            background-color: #ffffff; /* White card */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Lighter shadow */
+            border-color: #e2e8f0;
+        }
+        body[data-theme="light"] .input-field {
+            background-color: #ffffff;
+            border-color: #cbd5e1;
+            color: #1f2937;
+        }
+        body[data-theme="light"] .input-field:focus {
+            border-color: #1d4ed8;
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.5);
+        }
+        body[data-theme="light"] .bg-dark-bg { /* Used inside cards */
+            background-color: #f8fafc; /* Very light background for inner panels */
+            border-color: #cbd5e1;
+        }
+        body[data-theme="light"] .text-text-light {
+            color: #1f2937;
+        }
+        body[data-theme="light"] .border-gray-700, 
+        body[data-theme="light"] .border-gray-700\/50,
+        body[data-theme="light"] .border-t,
+        body[data-theme="light"] .border-b {
+            border-color: #e2e8f0 !important;
+        }
+        body[data-theme="light"] .text-gray-400 {
+            color: #475569;
+        }
+        body[data-theme="light"] .bg-card-bg {
+            background-color: #e2e8f0;
+        }
+        body[data-theme="light"] .hover\:bg-gray-700:hover {
+            background-color: #cbd5e1;
+        }
+
+        /* --- Animations --- */
+        /* Animation for value change (pulse effect) */
+        .pulse-once {
+            animation: pulse-effect 0.4s ease-out;
+        }
+        @keyframes pulse-effect {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        /* Animation for advice content fade-in */
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Ensure the loading animation remains */
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-card-bg shadow-2xl sticky top-0 z-10 border-b border-gray-700/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-3xl font-extrabold text-secondary-green tracking-wide">
+                FinTrack
+            </h1>
+            <div class="flex items-center space-x-6">
+                <nav class="hidden md:flex space-x-6 text-lg">
+                    <a href="#personal-finance" class="text-text-light hover:text-primary-blue transition-colors duration-200 font-medium">My Finances</a>
+                    <a href="#cards" class="text-text-light hover:text-accent-red transition-colors duration-200 font-medium">Debt</a>
+                    <a href="#goals" class="text-text-light hover:text-primary-blue transition-colors duration-200 font-medium">Goals</a>
+                </nav>
+                
+                <!-- Theme Toggle Button -->
+                <button id="theme-toggle" onclick="toggleTheme()" class="p-2 rounded-full text-text-light hover:text-primary-blue hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-blue">
+                    <!-- Sun Icon (Default: Dark Mode) -->
+                    <svg id="sun-icon" class="w-6 h-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <!-- Moon Icon (Default: Dark Mode - shown by default) -->
+                    <svg id="moon-icon" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h2 class="text-5xl font-extrabold mb-12 text-center text-text-light leading-tight">Your Personal Budgeting & Advice Tool</h2>
+        
+        <!-- PERSONAL FINANCE TRACKER -->
+        <section id="personal-finance" class="card bg-card-bg p-8 rounded-2xl border-l-4 border-secondary-green mb-12">
+            <h3 class="text-3xl font-bold mb-6 text-secondary-green flex items-center">
+                Personal Finance Tracker
+            </h3>
+            <p class="text-md text-gray-400 mb-6 border-b pb-4">Input your monthly income and spending to visualize your budget and savings.</p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Inputs & Summary Panel -->
+                <div class="lg:col-span-1 space-y-4">
+                    <!-- Income Input -->
+                    <div class="p-4 bg-dark-bg rounded-lg border border-gray-700/50">
+                        <label for="monthlyIncome" class="block text-sm font-medium mb-2 text-text-light">Monthly Net Income (₹)</label>
+                        <input type="number" id="monthlyIncome" value="50000" onchange="updatePersonalFinance(true)" class="input-field w-full rounded-lg text-lg font-bold">
+                    </div>
+
+                    <!-- Category Adder -->
+                    <h4 class="text-lg font-bold pt-2 text-primary-blue">Add New Category:</h4>
+                    <div class="p-4 bg-dark-bg rounded-lg border border-primary-blue/50 space-y-3">
+                        <input type="text" id="newCategoryName" placeholder="Category Name (e.g., Travel)" class="input-field w-full rounded-lg text-sm" value="Travel">
+                        <input type="number" id="newCategoryAmount" placeholder="Amount (₹)" class="input-field w-full rounded-lg text-sm" value="1000">
+                        <button onclick="addCategory()" class="primary-btn w-full bg-primary-blue hover:bg-blue-600 py-2 text-sm">Add Category</button>
+                    </div>
+                    
+                    <!-- New Feature: Receipt Scanner Section -->
+                    <div class="space-y-4 pt-4 border-t border-gray-700/50">
+                        <h4 class="text-lg font-bold text-accent-yellow flex items-center">
+                            Receipt Scanner
+                        </h4>
+                        <div class="p-4 bg-dark-bg rounded-lg border border-accent-yellow/50 space-y-3">
+                            <p class="text-sm text-gray-400">Upload a photo of your receipt to automatically extract the expense data.</p>
+                            <!-- Input optimized for camera access on mobile -->
+                            <input type="file" id="receiptInput" accept="image/jpeg, image/png" capture="camera" onchange="processReceiptImage(event)" class="input-field w-full rounded-lg text-sm p-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-blue file:text-white hover:file:bg-blue-600 cursor-pointer">
+                            
+                            <div id="scannerMessage" class="text-center text-sm text-gray-400 min-h-6"></div>
+                            
+                            <button id="addScannedExpenseButton" onclick="addScannedExpense()" class="primary-btn w-full bg-secondary-green hover:bg-emerald-600 py-2 text-sm hidden">Add Scanned Expense</button>
+                        </div>
+                    </div>
+
+                    <!-- Current Spending Inputs -->
+                    <h4 class="text-lg font-bold pt-2 text-primary-blue">Current Spending:</h4>
+                    <div id="spendingInputs" class="space-y-3">
+                        <!-- Inputs will be populated by JS -->
+                    </div>
+                    
+                    <!-- Budget Advice Button and Output -->
+                    <div class="pt-4 border-t border-gray-700/50">
+                        <button onclick="getBudgetAdvice()" class="primary-btn w-full bg-secondary-green hover:bg-emerald-600 text-lg">
+                             Personalized Budget Advice
+                        </button>
+                        <div id="adviceResult" class="mt-4 p-4 bg-dark-bg rounded-xl border border-secondary-green/50 hidden">
+                            <div id="adviceLoading" class="text-center text-sm text-gray-400 hidden">
+                                <span class="animate-pulse">Analyzing budget and generating advice...</span>
+                            </div>
+                            <div id="adviceContent" class="text-sm space-y-3">
+                                <p class="text-gray-400">Your personalized advice will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Stats -->
+                    <div class="pt-4 space-y-2 border-t border-gray-700">
+                        <div class="flex justify-between font-medium text-lg">
+                            <span>Total Spending:</span>
+                            <span id="totalSpendingDisplay" class="text-accent-red font-extrabold">₹0</span>
+                        </div>
+                        <div class="flex justify-between font-medium text-lg border-t border-gray-700 pt-2">
+                            <span>Monthly Savings:</span>
+                            <span id="monthlySavingsDisplay" class="text-secondary-green font-extrabold">--</span>
+                        </div>
+                        <div class="flex justify-between font-medium text-lg">
+                            <span>Remaining Budget:</span>
+                            <span id="remainingBudgetDisplay" class="text-text-light font-extrabold">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pie Chart Panel -->
+                <div class="lg:col-span-2 p-4 bg-dark-bg rounded-xl border border-secondary-green/50 flex justify-center items-center h-full min-h-96">
+                    <canvas id="spendingPieChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- CREDIT CARD & DEBT TRACKER -->
+        <section id="cards" class="card bg-card-bg p-8 rounded-2xl border-l-4 border-accent-red mb-12">
+            <h3 class="text-3xl font-bold mb-6 text-accent-red flex items-center">
+                Debt & Card Balances Tracker
+            </h3>
+            <p class="text-md text-gray-400 mb-6 border-b pb-4">Monitor your outstanding balances and simulate transaction sync.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Add New Debt/Card Form -->
+                <div class="p-4 bg-dark-bg rounded-xl border border-accent-red/50 space-y-3 h-fit">
+                    <h4 class="text-xl font-bold text-accent-red mb-2">Add New Debt/Card</h4>
+                    <label for="cardNameInput" class="block text-sm font-medium">Name</label>
+                    <input type="text" id="cardNameInput" placeholder="e.g., HDFC Card" class="input-field w-full rounded-lg text-sm">
+                    
+                    <label for="cardBalanceInput" class="block text-sm font-medium">Current Balance (₹)</label>
+                    <input type="number" id="cardBalanceInput" placeholder="50000" class="input-field w-full rounded-lg text-sm" value="0">
+                    
+                    <label for="cardRateInput" class="block text-sm font-medium">Annual Interest Rate (%)</label>
+                    <input type="number" id="cardRateInput" placeholder="18.5" class="input-field w-full rounded-lg text-sm" value="0">
+
+                    <button onclick="addCard()" class="primary-btn w-full bg-accent-red hover:bg-red-700 mt-4 text-sm">Add Debt/Card</button>
+                </div>
+
+                <!-- NEW TRANSACTION SIMULATOR -->
+                <div class="p-4 bg-dark-bg rounded-xl border border-secondary-green/50 space-y-3 h-fit">
+                    <h4 class="text-xl font-bold text-secondary-green mb-2">Simulate Card Transaction</h4>
+                    <p class="text-sm text-gray-400">Increase the card balance and add to spending simultaneously.</p>
+                    
+                    <label for="transactionAmountInput" class="block text-sm font-medium">Transaction Amount (₹)</label>
+                    <input type="number" id="transactionAmountInput" placeholder="2500" class="input-field w-full rounded-lg text-sm" value="0">
+                    
+                    <label for="transactionCardSelect" class="block text-sm font-medium">Select Card/Debt</label>
+                    <select id="transactionCardSelect" class="input-field w-full rounded-lg text-sm"></select>
+                    
+                    <button onclick="simulateTransaction()" class="primary-btn w-full bg-secondary-green hover:bg-emerald-600 mt-4 text-sm">Sync Transaction to Card</button>
+                    <div id="transactionMessage" class="text-center text-sm text-gray-400 min-h-6 pt-1"></div>
+                </div>
+
+                <!-- Card List & Display (Now 1/3 width) -->
+                <div class="md:col-span-1">
+                    <h4 class="text-xl font-bold text-accent-red mb-4">Your Active Debts</h4>
+                    <div id="cardList" class="space-y-6">
+                        <!-- Cards will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- SAVINGS GOALS TRACKER -->
+        <section id="goals" class="card bg-card-bg p-8 rounded-2xl border-l-4 border-primary-blue mb-12">
+            <h3 class="text-3xl font-bold mb-6 text-primary-blue flex items-center">
+                Savings Goals Tracker
+            </h3>
+            <p class="text-md text-gray-400 mb-6 border-b pb-4">Track your progress toward specific savings targets, from an emergency fund to a new car.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Add New Goal Form -->
+                <div class="p-4 bg-dark-bg rounded-xl border border-primary-blue/50 space-y-3 h-fit">
+                    <h4 class="text-xl font-bold text-primary-blue mb-2">Create New Goal</h4>
+                    <label for="goalName" class="block text-sm font-medium">Goal Name</label>
+                    <input type="text" id="goalName" placeholder="e.g., House Down Payment" class="input-field w-full rounded-lg text-sm">
+                    
+                    <label for="goalTarget" class="block text-sm font-medium">Target Amount (₹)</label>
+                    <input type="number" id="goalTarget" placeholder="100000" class="input-field w-full rounded-lg text-sm" value="100000">
+                    
+                    <label for="goalSaved" class="block text-sm font-medium">Currently Saved (₹)</label>
+                    <input type="number" id="goalSaved" placeholder="1000" class="input-field w-full rounded-lg text-sm" value="1000">
+
+                    <button onclick="addGoal()" class="primary-btn w-full bg-primary-blue hover:bg-blue-600 mt-4 text-sm">Add Goal</button>
+                </div>
+
+                <!-- Goal List & Progress Display -->
+                <div>
+                    <h4 class="text-xl font-bold text-primary-blue mb-4">Your Active Goals</h4>
+                    <div id="goalsList" class="space-y-6">
+                        <!-- Goals will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-card-bg mt-12 py-6 border-t border-gray-700/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-400">
+            <p>&copy; 2024 FinTrack. All calculations are simulated and for informational purposes only. Consult a professional advisor for real financial planning.</p>
+        </div>
+    </footer>
+    
+    <!-- JavaScript for Unique Features and Theme Logic -->
+    <script>
+        
+        // --- THEME TOGGLE LOGIC ---
+        const body = document.body;
+        const sunIcon = document.getElementById('sun-icon');
+        const moonIcon = document.getElementById('moon-icon');
+        
+        /**
+         * Toggles between dark and light themes and persists the choice.
+         */
+        function toggleTheme() {
+            const isLight = body.getAttribute('data-theme') === 'light';
+            
+            if (isLight) {
+                // Switch to Dark Mode
+                body.removeAttribute('data-theme');
+                moonIcon.classList.remove('hidden');
+                sunIcon.classList.add('hidden');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                // Switch to Light Mode
+                body.setAttribute('data-theme', 'light');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+                localStorage.setItem('theme', 'light');
+            }
+            updateChartTheme(); // Update chart colors to match theme
+        }
+        
+        /**
+         * Applies the stored theme on page load.
+         */
+        function applyInitialTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            if (savedTheme === 'light') {
+                body.setAttribute('data-theme', 'light');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                // Default is dark, so no attribute needed
+                moonIcon.classList.remove('hidden');
+                sunIcon.classList.add('hidden');
+            }
+        }
+        
+        /**
+         * Adjusts the chart background and text colors based on the current theme.
+         */
+        function updateChartTheme() {
+            if (!spendingChart) return;
+
+            const isLight = body.getAttribute('data-theme') === 'light';
+            const chartTextColor = isLight ? '#1f2937' : '#f1f5f9';
+            const chartBorderColor = isLight ? '#f1f5f9' : '#0a0a0f';
+
+            spendingChart.options.plugins.legend.labels.color = chartTextColor;
+            spendingChart.data.datasets[0].borderColor = chartBorderColor;
+            spendingChart.update();
+        }
+
+        // --- CURRENCY AND UTILITIES ---
+        
+        /**
+         * Utility function to format numbers as currency (Indian Rupees).
+         * @param {number} value
+         */
+        const formatCurrency = (value) => {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                minimumFractionDigits: 0
+            }).format(value);
+        };
+        
+        // --- API Constants (only kept for Budget Advice) ---
+        const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=";
+        const API_KEY = ""; // Leave the API key empty
+        
+        // Global variable for scanner messages
+        const SCANNER_MESSAGE = document.getElementById('scannerMessage');
+        let tempScannedExpense = null; // To hold data temporarily after scanning
+
+        /**
+         * Adds a brief pulse animation to an element.
+         * @param {string} elementId - The ID of the element to animate.
+         */
+        function animateValueChange(elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.classList.remove('pulse-once');
+                void el.offsetWidth;
+                el.classList.add('pulse-once');
+                setTimeout(() => {
+                    el.classList.remove('pulse-once');
+                }, 450);
+            }
+        }
+
+        /**
+         * Converts basic markdown (bold, headers, lists) to styled HTML.
+         */
+        function parseMarkdown(text) {
+            let htmlContent = text;
+            
+            // Replace **bold**
+            htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Replace headings with structured HTML to fit Tailwind styling
+            htmlContent = htmlContent.replace(/^### (.*)$/gm, '<h5 class="text-md font-bold text-primary-blue mt-3 mb-1">$1</h5>');
+            htmlContent = htmlContent.replace(/^## (.*)$/gm, '<h4 class="text-lg font-bold text-secondary-green mt-4 mb-2">$1</h4>');
+            htmlContent = htmlContent.replace(/^# (.*)$/gm, '<h3 class="text-xl font-bold text-text-light mt-5 mb-3">$1</h3>');
+            
+            // Handle bullet points (simple unordered list simulation)
+            htmlContent = htmlContent.replace(/^- (.*)$/gm, '<li class="ml-4 list-disc text-sm">$1</li>');
+            htmlContent = htmlContent.replace(/(<\/ul>|<\/li>|^)[\s\S]*?(<li)/g, '<ul>$2');
+            htmlContent = htmlContent.replace(/<\/li>[\s\S]*?(<ul|$)/g, '</li></ul>');
+            
+            // Replace newlines with breaks
+            htmlContent = htmlContent.replace(/\n\n/g, '<br><br>');
+            htmlContent = htmlContent.replace(/\n/g, '<br>');
+            
+            return htmlContent;
+        }
+
+        /**
+         * Toggles the loading state for the Budget Advice section.
+         */
+        function showLoading(isLoading) {
+            const loadingDiv = document.getElementById('adviceLoading');
+            const adviceContent = document.getElementById('adviceContent');
+
+            if (isLoading) {
+                loadingDiv.classList.remove('hidden');
+                adviceContent.classList.add('hidden');
+            } else {
+                loadingDiv.classList.add('hidden');
+                adviceContent.classList.remove('hidden', 'fade-in'); 
+                adviceContent.classList.add('fade-in'); // Trigger fade-in animation
+            }
+        }
+        
+        // --- LLM FEATURE: Budget Advice Logic ---
+
+        async function getBudgetAdvice() {
+            document.getElementById('adviceResult').classList.remove('hidden');
+            showLoading(true);
+            
+            const income = parseFloat(document.getElementById('monthlyIncome').value) || 0;
+            let totalSpending = 0;
+            let spendingDetails = '';
+
+            for (const category in spendingCategories) {
+                const amount = spendingCategories[category];
+                totalSpending += amount;
+                spendingDetails += `- ${category}: ${formatCurrency(amount)}\n`;
+            }
+
+            const savings = income - totalSpending;
+
+            const userQuery = `My current monthly budget is: 
+Monthly Income: ${formatCurrency(income)}
+Total Monthly Spending: ${formatCurrency(totalSpending)}
+Monthly Savings/Budget Remaining: ${formatCurrency(savings)}
+Spending Breakdown:
+${spendingDetails}
+
+Please provide personalized financial advice based on this data.`;
+
+            const systemPrompt = "You are a professional financial advisor specializing in personal budgeting. Analyze the user's provided income, spending, and savings data. Provide three distinct pieces of constructive advice: 1) Identify the highest spending category and suggest one way to reduce it. 2) Provide one actionable tip to increase savings (beyond reducing the highest expense). 3) Suggest a common financial goal the user could realistically save for based on their current savings rate. Always respond in markdown format using headings for clarity.";
+            
+            let responseText = "Could not connect to the advice service. Please try again.";
+
+            const payload = {
+                contents: [{ role: 'user', parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }], 
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            const apiUrl = `${GEMINI_API_URL}${API_KEY}`;
+
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        const candidate = result.candidates?.[0];
+                        
+                        if (candidate && candidate.content?.parts?.[0]?.text) {
+                            responseText = candidate.content.parts[0].text;
+                        }
+                        break; 
+                    }
+                } catch (error) {
+                    console.error("Budget Advice Fetch failed:", error);
+                }
+                if (i < 2) {
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, i + 1) * 1000));
+                }
+            }
+
+            showLoading(false);
+            const adviceContent = document.getElementById('adviceContent');
+            adviceContent.innerHTML = parseMarkdown(responseText);
+        }
+
+        // --- LLM FEATURE: Receipt Scanner Logic ---
+        
+        /**
+         * Utility to convert a File object to a base64 string.
+         */
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        /**
+         * Calls the Gemini API to analyze the receipt image and extract data.
+         */
+        async function callGeminiVision(base64Image) {
+            const prompt = "You are a specialized receipt parser. Extract the merchant name and the total amount paid from this receipt image. Only return the data in the requested JSON format. DO NOT include any explanatory text or markdown outside the JSON object.";
+            
+            const payload = {
+                contents: [{
+                    role: "user",
+                    parts: [
+                        { text: prompt },
+                        {
+                            inlineData: {
+                                mimeType: "image/jpeg", 
+                                data: base64Image
+                            }
+                        }
+                    ]
+                }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "merchant": { "type": "STRING", "description": "The name of the store or merchant." },
+                            "total": { "type": "NUMBER", "description": "The final total amount paid." },
+                        },
+                        propertyOrdering: ["merchant", "total"]
+                    }
+                }
+            };
+
+            const apiUrl = `${GEMINI_API_URL}${API_KEY}`;
+
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (jsonText) {
+                            return JSON.parse(jsonText);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Receipt Scanning API Fetch failed:", error);
+                }
+                if (i < 2) {
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, i + 1) * 1000));
+                }
+            }
+            return null; 
+        }
+
+        /**
+         * Handles the file input event, calls the AI, and displays the result.
+         */
+        async function processReceiptImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            SCANNER_MESSAGE.innerHTML = `<span class="animate-pulse text-accent-yellow">⏳ Scanning receipt... This may take a moment.</span>`;
+            document.getElementById('addScannedExpenseButton').classList.add('hidden');
+            tempScannedExpense = null;
+
+            try {
+                const base64Image = await fileToBase64(file);
+                const parsedData = await callGeminiVision(base64Image);
+
+                if (parsedData && parsedData.total > 0 && parsedData.merchant) {
+                    // Capitalize first letter of merchant for consistency
+                    parsedData.merchant = parsedData.merchant.charAt(0).toUpperCase() + parsedData.merchant.slice(1);
+                    tempScannedExpense = parsedData;
+
+                    SCANNER_MESSAGE.innerHTML = `<span class="text-secondary-green">✅ Data Parsed! Merchant: <strong>${parsedData.merchant}</strong>, Total: <strong>${formatCurrency(parsedData.total)}</strong>.</span>`;
+                    document.getElementById('addScannedExpenseButton').classList.remove('hidden');
+                    document.getElementById('addScannedExpenseButton').textContent = `Add ${parsedData.merchant} (${formatCurrency(parsedData.total)})`;
+                } else {
+                    SCANNER_MESSAGE.innerHTML = `<span class="text-accent-red">❌ Error: Could not extract key data. Try a clearer image.</span>`;
+                }
+            } catch (e) {
+                console.error("Scanning Error:", e);
+                SCANNER_MESSAGE.innerHTML = `<span class="text-accent-red">❌ Network or API error occurred.</span>`;
+            }
+        }
+
+        /**
+         * Adds the currently parsed receipt data to the spending tracker.
+         */
+        function addScannedExpense() {
+            if (!tempScannedExpense) {
+                SCANNER_MESSAGE.innerHTML = `<span class="text-accent-red">❌ No valid data to add. Scan a receipt first.</span>`;
+                return;
+            }
+
+            const { merchant, total } = tempScannedExpense;
+
+            // Use a specific category for scanned expenses, or the merchant name
+            const categoryName = merchant.length < 20 ? merchant : "Scanned Expense"; 
+
+            if (spendingCategories[categoryName]) {
+                spendingCategories[categoryName] += total;
+            } else {
+                spendingCategories[categoryName] = total;
+            }
+
+            // Reset scanner UI
+            tempScannedExpense = null;
+            document.getElementById('receiptInput').value = '';
+            document.getElementById('addScannedExpenseButton').classList.add('hidden');
+            SCANNER_MESSAGE.innerHTML = `<span class="text-secondary-green">Expense saved under '<strong>${categoryName}</strong>'!</span>`;
+
+            // Update the rest of the finance tracker
+            renderSpendingInputs();
+            updatePersonalFinance(true); // Pass true to animate
+        }
+
+        // --- GLOBAL PERSONAL FINANCE STATE (Simulated Data) ---
+        const spendingCategories = {
+            'Rent/Mortgage': 15000,
+            'Groceries': 5000,
+            'Utilities': 2000,
+            'Entertainment': 3000
+        };
+
+        let spendingChart;
+
+        /**
+         * Renders the input fields for the spending categories, including a remove button.
+         */
+        function renderSpendingInputs() {
+            const container = document.getElementById('spendingInputs');
+            container.innerHTML = '';
+            for (const category in spendingCategories) {
+                // Sanitize ID for DOM manipulation
+                const id = category.replace(/[^a-zA-Z0-9]/g, '');
+                
+                const html = `
+                    <div class="flex items-center space-x-2">
+                        <!-- Input for amount -->
+                        <label for="${id}" class="w-1/5 text-sm truncate" title="${category}">${category}:</label>
+                        <input type="number" id="${id}" value="${spendingCategories[category]}"
+                                onchange="updateCategorySpending('${category}', this.value)"
+                                class="input-field w-2/5 rounded-lg text-sm">
+                        <!-- Remove button -->
+                        <button onclick="removeCategory('${category}')" class="w-2/5 bg-accent-red hover:bg-red-700 text-white font-medium py-2 px-3 rounded-lg text-xs transition-colors duration-150">
+                            Remove
+                        </button>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            }
+        }
+
+        /**
+         * Adds a new custom spending category.
+         */
+        function addCategory() {
+            const nameInput = document.getElementById('newCategoryName');
+            const amountInput = document.getElementById('newCategoryAmount');
+            
+            const name = nameInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+
+            if (!name) {
+                console.error("Category name cannot be empty."); 
+                return;
+            }
+            if (isNaN(amount) || amount < 0) {
+                console.error("Please enter a valid non-negative amount.");
+                return;
+            }
+
+            // Capitalize the first letter of the name for cleaner display
+            const cleanName = name.charAt(0).toUpperCase() + name.slice(1);
+            
+            spendingCategories[cleanName] = amount;
+            
+            // Reset inputs after adding
+            nameInput.value = 'New Category';
+            amountInput.value = '1000';
+
+            // Re-render and update finance data
+            renderSpendingInputs();
+            updatePersonalFinance(true); // Pass true to animate
+        }
+
+        /**
+         * Removes an existing spending category.
+         */
+        function removeCategory(category) {
+            if (spendingCategories[category] !== undefined) {
+                delete spendingCategories[category];
+                renderSpendingInputs();
+                updatePersonalFinance(true); // Pass true to animate
+            }
+        }
+
+
+        /**
+         * Updates a specific spending category amount and recalculates the budget.
+         */
+        function updateCategorySpending(category, value) {
+            const amount = parseFloat(value);
+            if (!isNaN(amount) && amount >= 0) {
+                spendingCategories[category] = amount;
+                updatePersonalFinance(true); // Pass true to animate
+            }
+        }
+
+        /**
+         * Initializes and updates the spending pie chart.
+         */
+        function updateSpendingChart(totalSpending) {
+            const ctx = document.getElementById('spendingPieChart').getContext('2d');
+            const labels = Object.keys(spendingCategories);
+            const dataValues = Object.values(spendingCategories);
+            
+            const income = parseFloat(document.getElementById('monthlyIncome').value) || 0;
+            const savings = Math.max(0, income - totalSpending);
+
+            const chartLabels = [...labels];
+            const chartData = [...dataValues];
+            
+            const colorPalette = [
+                '#3b82f6', '#ef4444', '#facc15', '#a855f7', '#06b6d4', '#10b981', '#f97316', '#84cc16'
+            ];
+            const chartColors = [...colorPalette];
+
+            if (savings > 0) {
+                chartLabels.push('Monthly Savings');
+                chartData.push(savings);
+                chartColors[chartLabels.length - 1] = '#10b981'; 
+            }
+            
+            const isLight = body.getAttribute('data-theme') === 'light';
+            const chartTextColor = isLight ? '#1f2937' : '#f1f5f9';
+            const chartBorderColor = isLight ? '#f1f5f9' : '#0a0a0f';
+
+
+            if (spendingChart) {
+                spendingChart.data.labels = chartLabels;
+                spendingChart.data.datasets[0].data = chartData;
+                spendingChart.data.datasets[0].backgroundColor = chartColors.slice(0, chartLabels.length);
+                spendingChart.options.plugins.legend.labels.color = chartTextColor;
+                spendingChart.data.datasets[0].borderColor = chartBorderColor;
+                spendingChart.update();
+            } else {
+                spendingChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            data: chartData,
+                            backgroundColor: colorPalette.slice(0, chartLabels.length),
+                            hoverOffset: 8,
+                            borderWidth: 1,
+                            borderColor: chartBorderColor,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '65%',
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                align: 'center',
+                                labels: {
+                                    color: chartTextColor,
+                                    font: { size: 14 },
+                                    boxWidth: 10,
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) { label += ': '; }
+                                        if (context.parsed !== null) { label += formatCurrency(context.parsed); }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        /**
+         * Main function to calculate budget, savings, and update the display/chart.
+         * @param {boolean} triggerAnimation - If true, triggers a pulse animation on stat change.
+         */
+        function updatePersonalFinance(triggerAnimation = false) {
+            const income = parseFloat(document.getElementById('monthlyIncome').value) || 0;
+            let totalSpending = 0;
+            
+            for (const category in spendingCategories) {
+                totalSpending += spendingCategories[category];
+            }
+
+            const savings = income - totalSpending;
+            
+            // Get current values to check for change
+            const currentTotal = document.getElementById('totalSpendingDisplay').textContent;
+            
+            // Update summary displays
+            document.getElementById('totalSpendingDisplay').textContent = formatCurrency(totalSpending);
+            document.getElementById('monthlySavingsDisplay').textContent = formatCurrency(Math.max(0, savings));
+            document.getElementById('remainingBudgetDisplay').textContent = formatCurrency(savings);
+
+            // Change colors based on budget status
+            document.getElementById('remainingBudgetDisplay').className = `font-extrabold ${savings >= 0 ? 'text-secondary-green' : 'text-accent-red'}`;
+            document.getElementById('monthlySavingsDisplay').className = `text-secondary-green font-extrabold ${savings <= 0 ? 'text-gray-500' : 'text-secondary-green'}`;
+
+            // Trigger animation if requested and value has changed
+            if (triggerAnimation && currentTotal !== formatCurrency(totalSpending)) {
+                animateValueChange('totalSpendingDisplay');
+                animateValueChange('monthlySavingsDisplay');
+                animateValueChange('remainingBudgetDisplay');
+            }
+
+            updateSpendingChart(totalSpending);
+        }
+
+        // --- DEBT / CARD BALANCES LOGIC ---
+        
+        const cardBalances = [
+            { name: 'Credit Card (Visa)', balance: 50000, rate: 18.5, id: 'card1' },
+            { name: 'Personal Loan', balance: 250000, rate: 10.0, id: 'card2' },
+        ];
+        
+        function renderCardBalances() {
+            const container = document.getElementById('cardList');
+            container.innerHTML = '';
+            
+            const cardSelect = document.getElementById('transactionCardSelect');
+            cardSelect.innerHTML = '<option value="">-- Select Card/Debt --</option>';
+
+            cardBalances.forEach(card => {
+                const cardHtml = `
+                    <div class="p-4 bg-dark-bg rounded-lg border border-accent-red/50">
+                        <div class="flex justify-between items-start mb-2">
+                            <h5 class="text-lg font-bold text-accent-red">${card.name}</h5>
+                            <button onclick="removeCard('${card.id}')" class="text-gray-500 hover:text-accent-red text-sm font-medium transition-colors">
+                                Remove
+                            </button>
+                        </div>
+                        
+                        <div class="text-sm text-gray-400 mb-2">
+                            Balance: <span class="text-text-light font-bold">${formatCurrency(card.balance)}</span>
+                        </div>
+                        
+                        <div class="text-sm text-gray-400 mb-2">
+                            Rate: <span class="text-accent-yellow font-bold">${card.rate}% (Annual)</span>
+                        </div>
+                        
+                        <!-- Card Payment Input -->
+                        <div class="mt-3 flex space-x-2">
+                            <input type="number" id="balance-${card.id}" value="" 
+                                   onchange="updateCardBalance('${card.id}', this.value)"
+                                   class="input-field w-2/3 rounded-lg text-sm p-2" placeholder="Payment Amount (₹)">
+                            <button onclick="updateCardBalance('${card.id}', document.getElementById('balance-${card.id}').value)" class="w-1/3 bg-primary-blue hover:bg-blue-600 text-white font-medium py-2 px-3 rounded-lg text-xs transition-colors duration-150">
+                                Make Payment
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', cardHtml);
+
+                // Populate the transaction simulator select dropdown
+                cardSelect.insertAdjacentHTML('beforeend', `<option value="${card.id}">${card.name}</option>`);
+            });
+
+            if (cardBalances.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">No cards or debts added yet. Use the form to the left!</p>';
+                cardSelect.innerHTML = '<option value="">No Cards Added</option>';
+            }
+        }
+
+        function addCard() {
+            const name = document.getElementById('cardNameInput').value.trim();
+            const balance = parseFloat(document.getElementById('cardBalanceInput').value);
+            const rate = parseFloat(document.getElementById('cardRateInput').value);
+            
+            if (!name || isNaN(balance) || balance < 0 || isNaN(rate) || rate < 0) {
+                console.error("Please enter valid card name, balance (>= 0), and interest rate (>= 0).");
+                return;
+            }
+
+            const newCard = {
+                name: name,
+                balance: balance,
+                rate: rate,
+                id: `card${Date.now()}`
+            };
+
+            cardBalances.push(newCard);
+
+            document.getElementById('cardNameInput').value = 'New Debt';
+            document.getElementById('cardBalanceInput').value = '0';
+            document.getElementById('cardRateInput').value = '0';
+
+            renderCardBalances();
+        }
+
+        function updateCardBalance(id, paymentAmount) {
+            const amount = parseFloat(paymentAmount);
+            if (isNaN(amount) || amount < 0) {
+                console.error("Invalid payment amount entered.");
+                return;
+            }
+
+            const cardIndex = cardBalances.findIndex(c => c.id === id);
+            if (cardIndex !== -1) {
+                // Payments DECREASE the balance
+                cardBalances[cardIndex].balance = Math.max(0, cardBalances[cardIndex].balance - amount);
+                document.getElementById(`balance-${id}`).value = ''; // Clear input
+                renderCardBalances();
+            }
+        }
+
+        function removeCard(id) {
+            const index = cardBalances.findIndex(c => c.id === id);
+            if (index !== -1) {
+                cardBalances.splice(index, 1);
+                renderCardBalances();
+            }
+        }
+        
+        /**
+         * Simulates a transaction: adds to card balance AND increases total spending.
+         */
+        function simulateTransaction() {
+            const amountInput = document.getElementById('transactionAmountInput');
+            const cardSelect = document.getElementById('transactionCardSelect');
+            const messageDiv = document.getElementById('transactionMessage');
+
+            const amount = parseFloat(amountInput.value);
+            const cardId = cardSelect.value;
+
+            if (isNaN(amount) || amount <= 0) {
+                messageDiv.innerHTML = '<span class="text-accent-red">Enter a valid amount.</span>';
+                return;
+            }
+            if (!cardId) {
+                messageDiv.innerHTML = '<span class="text-accent-red">Select a card/debt.</span>';
+                return;
+            }
+
+            const cardIndex = cardBalances.findIndex(c => c.id === cardId);
+            if (cardIndex === -1) {
+                messageDiv.innerHTML = '<span class="text-accent-red">Card not found.</span>';
+                return;
+            }
+
+            const cardName = cardBalances[cardIndex].name;
+
+            // 1. Debt Sync: Increase card balance
+            cardBalances[cardIndex].balance += amount;
+
+            // 2. Budget Sync: Add amount to spending (use a general category)
+            const spendingCategoryName = 'Card Spending (' + cardName.substring(0, 10) + '...)';
+            if (spendingCategories[spendingCategoryName]) {
+                spendingCategories[spendingCategoryName] += amount;
+            } else {
+                spendingCategories[spendingCategoryName] = amount;
+            }
+
+            // Update UI
+            renderCardBalances();
+            renderSpendingInputs();
+            updatePersonalFinance(true);
+            
+            // Reset input and show success message
+            amountInput.value = '0';
+            messageDiv.innerHTML = `<span class="text-secondary-green">✅ ${formatCurrency(amount)} synced to ${cardName} & Budget!</span>`;
+            setTimeout(() => messageDiv.innerHTML = '', 4000);
+        }
+
+        // --- SAVINGS GOALS LOGIC ---
+
+        const savingsGoals = [
+            // Sample data updated to reflect typical Indian values (1.5 Lakh and 75,000)
+            { name: 'Emergency Fund', target: 150000, saved: 75000, id: 'goal1' },
+            { name: 'Vacation to Thailand', target: 75000, saved: 15000, id: 'goal2' },
+        ];
+
+        function renderGoals() {
+            const container = document.getElementById('goalsList');
+            container.innerHTML = '';
+
+            savingsGoals.forEach(goal => {
+                const progress = Math.min(100, (goal.saved / goal.target) * 100).toFixed(0);
+                const isComplete = progress == 100;
+                const progressColor = isComplete ? 'bg-secondary-green' : 'bg-primary-blue';
+                const textColor = isComplete ? 'text-secondary-green' : 'text-primary-blue';
+                const borderColor = isComplete ? 'border-secondary-green' : 'border-primary-blue';
+
+                const goalHtml = `
+                    <div class="p-4 bg-dark-bg rounded-lg border ${borderColor}/50">
+                        <div class="flex justify-between items-start mb-2">
+                            <h5 class="text-lg font-bold ${textColor}">${goal.name}</h5>
+                            <button onclick="removeGoal('${goal.id}')" class="text-gray-500 hover:text-accent-red text-sm font-medium transition-colors">
+                                Remove
+                            </button>
+                        </div>
+                        
+                        <div class="text-sm text-gray-400 mb-2">
+                            Saved: ${formatCurrency(goal.saved)} / ${formatCurrency(goal.target)}
+                        </div>
+
+                        <!-- Progress Bar - transition applied in style sheet -->
+                        <div class="w-full bg-gray-700 rounded-full h-2.5 mb-2">
+                            <div class="h-2.5 rounded-full ${progressColor} transition-all duration-500 ease-out" style="width: ${progress}%"></div>
+                        </div>
+
+                        <div class="flex justify-between text-xs text-gray-400">
+                            <span>Progress:</span>
+                            <span class="font-bold ${textColor}">${progress}% ${isComplete ? ' (Complete)' : ''}</span>
+                        </div>
+                        
+                        <!-- Quick Update Input -->
+                        <div class="mt-3 flex space-x-2">
+                            <input type="number" id="saved-${goal.id}" value="${goal.saved}" 
+                                   onchange="updateGoalProgress('${goal.id}', this.value)"
+                                   class="input-field w-full rounded-lg text-sm p-2" placeholder="Update Saved Amount">
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', goalHtml);
+            });
+            if (savingsGoals.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">No goals added yet. Use the form to the left!</p>';
+            }
+        }
+
+        function addGoal() {
+            const name = document.getElementById('goalName').value.trim();
+            const target = parseFloat(document.getElementById('goalTarget').value);
+            const saved = parseFloat(document.getElementById('goalSaved').value);
+            
+            if (!name || isNaN(target) || target <= 0 || isNaN(saved) || saved < 0) {
+                console.error("Please enter a valid goal name, target amount (must be positive), and current saved amount (must be non-negative).");
+                return;
+            }
+
+            const newGoal = {
+                name: name,
+                target: target,
+                saved: saved,
+                id: `goal${Date.now()}`
+            };
+
+            savingsGoals.push(newGoal);
+
+            document.getElementById('goalName').value = '';
+            document.getElementById('goalTarget').value = '100000';
+            document.getElementById('goalSaved').value = '0';
+
+            renderGoals();
+        }
+
+        function updateGoalProgress(id, value) {
+            const amount = parseFloat(value);
+            if (isNaN(amount) || amount < 0) {
+                console.error("Invalid amount entered for goal update.");
+                renderGoals();
+                return;
+            }
+
+            const goalIndex = savingsGoals.findIndex(g => g.id === id);
+            if (goalIndex !== -1) {
+                savingsGoals[goalIndex].saved = amount;
+                renderGoals();
+            }
+        }
+
+        function removeGoal(id) {
+            const index = savingsGoals.findIndex(g => g.id === id);
+            if (index !== -1) {
+                savingsGoals.splice(index, 1);
+                renderGoals();
+            }
+        }
+        
+        // Run initial calculations and theme application on load
+        window.onload = function() {
+            applyInitialTheme();
+            renderSpendingInputs();
+            updatePersonalFinance(false); 
+            renderCardBalances(); // Render new card balances section
+            renderGoals();
+        }
+    </script>
+
+</body>
+</html>
